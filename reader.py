@@ -56,6 +56,8 @@ class CoCMessageReader(BufferedReader):
 
     def read_zstring(self):
         length = int.from_bytes(self.read(4), byteorder="big")
+        if length == pow(2, 32) - 1:
+            return b""
         zlength = int.from_bytes(self.read(4), byteorder="little")
         try:
             decoded = zlib.decompress(self.read(length - 4), 15, zlength)

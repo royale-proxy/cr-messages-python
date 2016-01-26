@@ -82,8 +82,11 @@ class CoCMessageDecoder:
         elif type == "STRING":
             return reader.read_string()
         elif type == "ZIP_STRING":
+            decoded = reader.read_zstring()
+            if not decoded:
+                return decoded
             try:
-                decoded = reader.read_zstring().decode()
+                decoded = decoded.decode()
             except UnicodeDecodeError:
                 raise ValueError("Failed to decode JSON.")
             else:
