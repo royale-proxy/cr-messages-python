@@ -1,43 +1,29 @@
+from collections import OrderedDict
+from coc.message.reader import CoCMessageReader
+from coc.message.definitions import CoCMessageDefinitions
 import json
 import math
-import os
-from collections import OrderedDict
 
-from coc.message.reader import CoCMessageReader
 
 
 class CoCMessageDecoder:
 
-    def __init__(self):
-        self.messages = {}
-        for entry in os.scandir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "definitions")):
-            if entry.is_dir() and entry.name[:1] is not ".":
-                if entry.name == "component":
-                    self.messages[entry.name] = {}
-                for file in os.scandir(entry.path):
-                    with open(file.path, 'r') as fh:
-                        data = json.load(fh)
-                        if entry.name == "component":
-                            if "extensions" in data:
-                                extensions = {}
-                                for extension in data["extensions"]:
-                                    extensions[extension["id"]] = extension
-                                data["extensions"] = extensions
-                            self.messages[entry.name][data["name"]] = data
-                        else:
-                            self.messages[data["id"]] = data
+    def __init__(self, definitions=None):
+        if not definitions:
+            self._definitions = CoCMessageDefinitions.read()
+        self._definitions = definitions
 
     def decode(self, messageid, unknown, payload):
-        if messageid in self.messages:
+        if messageid in self._definitions:
             reader = CoCMessageReader(messageid, unknown, payload)
-            if "fields" in self.messages[messageid]:
+            if "fields" in self._definitions[messageid]:
                 decoded = {
-                    "name": self.messages[messageid]["name"],
-                    "fields": self._decode_fields(reader, self.messages[messageid]["fields"])
+                    "name": self._definitions[messageid]["name"],
+                    "fields": self._decode_fields(reader, self._definitions[messageid]["fields"])
                 }
             else:
                 decoded = {
-                    "name": self.messages[messageid]["name"]
+                    "name": self._definitions[messageid]["name"]
                 }
             unused = reader.read()
             if unused:
@@ -71,7 +57,7 @@ class CoCMessageDecoder:
             for i in range(int(count)):
                 decoded.append(self._decode_field(reader, "{}[{}]".format(name, i), type))
             return decoded
-        if type == "BOOLEAN":
+        elif type == "BOOLEAN":
             return bool(reader.read_int(1))
         elif type == "BYTE":
             return reader.read_byte()
@@ -91,21 +77,21 @@ class CoCMessageDecoder:
                 raise ValueError("Failed to decode JSON.")
             else:
                 return json.loads(decoded)
-        elif type in self.messages["component"]:
-            decoded = self._decode_fields(reader, self.messages["component"][type]["fields"])
-            if "extensions" in self.messages["component"][type]:
-                if not decoded["id"] in self.messages["component"][type]["extensions"]:
+        elif type in self._definitions["component"]:
+            decoded = self._decode_fields(reader, self._definitions["component"][type]["fields"])
+            if "extensions" in self._definitions["component"][type]:
+                if not decoded["id"] in self._definitions["component"][type]["extensions"]:
                     raise NotImplementedError("{}(id={}) has not yet been implemented.".format(type, decoded["id"]))
-                decoded["payload"] = self._decode_fields(reader, self.messages["component"][type]["extensions"][decoded["id"]]["fields"])
+                decoded["payload"] = self._decode_fields(reader, self._definitions["component"][type]["extensions"][decoded["id"]]["fields"])
             return decoded
         else:
-            raise NotImplementedError("".join([type, " has not yet been implemented."]))
+            raise NotImplementedError("{} has not yet been implemented.".format(type))
 
     def dump(self, decoded, hide_unknown=False):
         if "fields" in decoded:
             print("{}: {}".format(decoded["name"], json.dumps(self.stringify(decoded["fields"], hide_unknown), indent=2)))
         else:
-            print("".join(["{}: ".format(decoded["name"]), "{}"]))
+            print("{}: {{}}".format(decoded["name"]))
 
     def stringify(self, decoded, hide_unknown=False):
         stringified = type(decoded)()
