@@ -10,7 +10,7 @@ class CoCMessageWriter(BufferedWriter):
         super(CoCMessageWriter, self).__init__(BytesIO())
 
     def write_byte(self, data):
-        self.write_int(data, 1)
+        self.write(bytes(data)[:1])
 
     def write_int(self, data, length=4):
         self.write(int(data).to_bytes(length, byteorder="big"))

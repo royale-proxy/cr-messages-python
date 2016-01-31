@@ -8,6 +8,8 @@ import math
 
 class CoCMessageDecoder:
 
+    _bitfield = None
+
     def __init__(self, definitions=None):
         if not definitions:
             self._definitions = CoCMessageDefinitions.read()
@@ -42,11 +44,24 @@ class CoCMessageDecoder:
 
 
     def _decode_field(self, reader, name, type):
+        if not len(reader.peek(1)):
+            raise IndexError("Read buffer out of data.")
         if type[:1] == "?":
-            if reader.read_int(1):
+            if self._bitfield:
+                self._bitfield = (self._bitfield << 1) % 16
+                if not self._bitfield:
+                    return None
+            else:
+                self._bitfield = 1
+            if reader.peek_int(1) & self._bitfield:
                 type = type[1:]
+                reader.read(1)
+                self._bitfield = None
             else:
                 return None
+        elif self._bitfield:
+            reader.read(1)
+            self._bitfield = None
         found = type.find("[")
         if found >= 0:
             count = type[found + 1:-1]

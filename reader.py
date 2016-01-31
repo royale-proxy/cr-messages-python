@@ -63,7 +63,11 @@ class CoCMessageReader(BufferedReader):
             decoded = zlib.decompress(self.read(length - 4), 15, zlength)
         except MemoryError:
             raise IndexError("String out of range.")
-        except ValueError as e:
+        except (ValueError, zlib.error) as e:
             raise IndexError("Decompress error: {}".format(e))
         else:
             return decoded
+
+    def peek_int(self, length=4):
+        return int.from_bytes(self.peek(length)[:length], byteorder="big")
+
