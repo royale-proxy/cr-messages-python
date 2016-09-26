@@ -29,6 +29,7 @@ class CoCMessageDecoder:
                 }
             unused = reader.read()
             if unused:
+                self.dump(decoded)
                 raise IndexError("Unused buffer remains.")
             return decoded
         else:
@@ -76,6 +77,8 @@ class CoCMessageDecoder:
             return bool(reader.read_int(1))
         elif type == "BYTE":
             return reader.read_byte()
+        elif type == "SHORT":
+            return reader.read_short()
         elif type == "INT":
             return reader.read_int()
         elif type == "LONG":

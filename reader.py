@@ -36,6 +36,9 @@ class CoCMessageReader(BufferedReader):
     def read_byte(self):
         return self.read(1)
 
+    def read_short(self, length=2):
+        return int.from_bytes(self.read(length), byteorder="big")
+
     def read_int(self, length=4):
         return int.from_bytes(self.read(length), byteorder="big")
 
