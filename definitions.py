@@ -11,15 +11,16 @@ class CoCMessageDefinitions:
                 if entry.name == "component":
                     messages[entry.name] = {}
                 for file in os.scandir(entry.path):
-                    with open(file.path, 'r') as fh:
-                        data = json.load(fh)
-                        if entry.name == "component":
-                            if "extensions" in data:
-                                extensions = {}
-                                for extension in data["extensions"]:
-                                    extensions[extension["id"]] = extension
-                                data["extensions"] = extensions
-                            messages[entry.name][data["name"]] = data
-                        else:
-                            messages[data["id"]] = data
+                    if file.name[:1] is not ".":
+                        with open(file.path, 'r') as fh:
+                            data = json.load(fh)
+                            if entry.name == "component":
+                                if "extensions" in data:
+                                    extensions = {}
+                                    for extension in data["extensions"]:
+                                        extensions[extension["id"]] = extension
+                                    data["extensions"] = extensions
+                                messages[entry.name][data["name"]] = data
+                            else:
+                                messages[data["id"]] = data
         return messages

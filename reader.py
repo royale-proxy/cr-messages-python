@@ -34,7 +34,7 @@ class CoCMessageReader(BufferedReader):
         raise AttributeError("Unknown is read-only.")
 
     def read_byte(self):
-        return self.read(1)
+        return int.from_bytes(self.read(1), byteorder="big")
 
     def read_short(self, length=2):
         return int.from_bytes(self.read(length), byteorder="big")
