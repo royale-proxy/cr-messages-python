@@ -1,5 +1,6 @@
 from io import BufferedReader, BytesIO, SEEK_CUR
 import zlib
+from sys import byteorder
 
 
 class CoCMessageReader(BufferedReader):
@@ -42,6 +43,17 @@ class CoCMessageReader(BufferedReader):
     def read_int(self, length=4):
         return int.from_bytes(self.read(length), byteorder="big")
 
+    def read_varint(self):
+        shift = 0
+        result = 0
+        while True:
+            i = int.from_bytes(self.read(1), byteorder="big")
+            result |= (i & 0x7f) << shift
+            shift += 7
+            if not (i & 0x80):
+                break
+        return result
+
     def read_long(self):
         return self.read_int(8)
 
@@ -73,4 +85,4 @@ class CoCMessageReader(BufferedReader):
 
     def peek_int(self, length=4):
         return int.from_bytes(self.peek(length)[:length], byteorder="big")
-
+    
