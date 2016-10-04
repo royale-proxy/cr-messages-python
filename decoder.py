@@ -88,7 +88,6 @@ class CoCMessageDecoder:
             decoded = []
             for i in range(int(count)):
                 decoded.append(self._decode_field(reader, "{}[{}]".format(name, i), type, lengthType))
-            print ("XXX1 {}".format(decoded))
             return decoded
         elif type == "BOOLEAN":
             return bool(reader.read_int(1))
@@ -120,7 +119,6 @@ class CoCMessageDecoder:
                 if not decoded["id"] in self._definitions["component"][type]["extensions"]:
                     raise NotImplementedError("{}(id={}) has not yet been implemented.".format(type, decoded["id"]))
                 decoded["payload"] = self._decode_fields(reader, self._definitions["component"][type]["extensions"][decoded["id"]]["fields"])
-            print ("XXX2 {}".format(decoded))
             return decoded
         else:
             raise NotImplementedError("{} has not yet been implemented.".format(type))
