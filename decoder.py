@@ -3,11 +3,12 @@ from coc.message.reader import CoCMessageReader
 from coc.message.definitions import CoCMessageDefinitions
 import json
 import math
+from coc.hexdump import hexdump
 
 
 
 class CoCMessageDecoder:
-
+    lengthTypes = ['BYTE', 'INT']
     _bitfield = None
 
     def __init__(self, definitions=None):
@@ -27,10 +28,12 @@ class CoCMessageDecoder:
                 decoded = {
                     "name": self._definitions[messageid]["name"]
                 }
+            
             unused = reader.read()
             if unused:
                 self.dump(decoded)
-                raise IndexError("Unused buffer remains.")
+                raise IndexError("Unused {} bytes in buffer remains".
+                                 format(len(unused)))
             return decoded
         else:
             raise KeyError("Message definition missing ({}).".format(messageid))
@@ -40,11 +43,19 @@ class CoCMessageDecoder:
         for index, field in enumerate(fields):
             if "name" not in field:
                 field["name"] = "unknown_{}".format(str(index).zfill(math.floor(math.log10(len(fields)))))
-            decoded[field["name"]] = self._decode_field(reader, field["name"], field["type"])
+            
+            if "lengthType" not in field:
+                field["lengthType"] = "INT"
+                
+            self._lengthTypeCheck(field["lengthType"])
+            decoded[field["name"]] = self._decode_field(reader, field["name"], field["type"], field["lengthType"])
         return decoded
 
-
-    def _decode_field(self, reader, name, type):
+    def _lengthTypeCheck(self, lengthType):
+        if lengthType not in self.lengthTypes:
+            raise ValueError("lengthType {} not supported".format(lengthType))
+        
+    def _decode_field(self, reader, name, type, lengthType):
         if not len(reader.peek(1)):
             raise IndexError("Read buffer out of data.")
         if type[:1] == "?":
@@ -68,10 +79,16 @@ class CoCMessageDecoder:
             count = type[found + 1:-1]
             type = type[:found]
             if not count:
-                count = reader.read_int()
+                if lengthType == "BYTE":
+                    count = reader.read_int(1)
+                elif lengthType == "INT":
+                    count = reader.read_int(4)
+                else:
+                    count = reader.read_int()
             decoded = []
             for i in range(int(count)):
-                decoded.append(self._decode_field(reader, "{}[{}]".format(name, i), type))
+                decoded.append(self._decode_field(reader, "{}[{}]".format(name, i), type, lengthType))
+            print ("XXX1 {}".format(decoded))
             return decoded
         elif type == "BOOLEAN":
             return bool(reader.read_int(1))
@@ -103,6 +120,7 @@ class CoCMessageDecoder:
                 if not decoded["id"] in self._definitions["component"][type]["extensions"]:
                     raise NotImplementedError("{}(id={}) has not yet been implemented.".format(type, decoded["id"]))
                 decoded["payload"] = self._decode_fields(reader, self._definitions["component"][type]["extensions"][decoded["id"]]["fields"])
+            print ("XXX2 {}".format(decoded))
             return decoded
         else:
             raise NotImplementedError("{} has not yet been implemented.".format(type))
