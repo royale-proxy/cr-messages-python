@@ -97,8 +97,12 @@ class CoCMessageDecoder:
             return reader.read_short()
         elif type == "INT":
             return reader.read_int()
-        elif type == "VARINT":
-            return reader.read_varint()
+        elif type == "INT32":
+            return reader.read_int32()
+        elif type == "SINT32":
+            return reader.read_sint32()
+        elif type == "RRSINT32":
+            return reader.read_rrsint32()
         elif type == "LONG":
             return reader.read_long()
         elif type == "STRING":
