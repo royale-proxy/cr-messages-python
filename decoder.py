@@ -44,10 +44,12 @@ class CoCMessageDecoder:
             if "name" not in field:
                 field["name"] = "unknown_{}".format(str(index).zfill(math.floor(math.log10(len(fields)))))
             
+            # default in lengthType to 4 byte int. Used to count the number of members in an array
             if "lengthType" not in field:
                 field["lengthType"] = "INT"
                 
             self._lengthTypeCheck(field["lengthType"])
+            
             decoded[field["name"]] = self._decode_field(reader, field["name"], field["type"], field["lengthType"])
         return decoded
 
@@ -74,6 +76,7 @@ class CoCMessageDecoder:
         elif self._bitfield:
             reader.read(1)
             self._bitfield = None
+            
         found = type.find("[")
         if found >= 0:
             count = type[found + 1:-1]
@@ -117,17 +120,28 @@ class CoCMessageDecoder:
                 raise ValueError("Failed to decode JSON.")
             else:
                 return json.loads(decoded)
+        elif type == "IGNORE":
+            # consume all the trailing data and ignore
+            ignore_count = 0
+            while len(reader.peek(1)) > 0:
+                ignore_count += 1
+                reader.read_byte()
+            return "{} bytes ignored".format(ignore_count)
         elif type in self._definitions["component"]:
             decoded = self._decode_fields(reader, self._definitions["component"][type]["fields"])
             if "extensions" in self._definitions["component"][type]:
                 if not decoded["id"] in self._definitions["component"][type]["extensions"]:
                     raise NotImplementedError("{}(id={}) has not yet been implemented.".format(type, decoded["id"]))
                 decoded["payload"] = self._decode_fields(reader, self._definitions["component"][type]["extensions"][decoded["id"]]["fields"])
+            self.dump(decoded)
             return decoded
         else:
             raise NotImplementedError("{} has not yet been implemented.".format(type))
 
     def dump(self, decoded, hide_unknown=False):
+        if "name" not in decoded:
+            decoded["name"] = "unknownName"
+            
         if "fields" in decoded:
             print("{}: {}".format(decoded["name"], json.dumps(self.stringify(decoded["fields"], hide_unknown), indent=2)))
         else:
