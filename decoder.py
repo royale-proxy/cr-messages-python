@@ -15,7 +15,21 @@ class CoCMessageDecoder:
         if not definitions:
             self._definitions = CoCMessageDefinitions.read()
         self._definitions = definitions
-
+    
+    def decodeFile(self, filepath):
+        messageid = None
+        length = None
+        version = None
+        payload = None
+        with open(filepath, 'rb') as fh:
+            messageid = int.from_bytes(fh.read(2), byteorder="big")
+            length = int.from_bytes(fh.read(3), byteorder="big")
+            version = int.from_bytes(fh.read(2), byteorder="big")
+            payload = fh.read(length)
+        if messageid and length and payload:
+            return self.decode(messageid, version, payload)
+        return None
+    
     def decode(self, messageid, unknown, payload):
         if messageid in self._definitions:
             reader = CoCMessageReader(messageid, unknown, payload)
@@ -50,7 +64,8 @@ class CoCMessageDecoder:
                 
             self._lengthTypeCheck(field["lengthType"])
             
-            decoded[field["name"]] = self._decode_field(reader, field["name"], field["type"], field["lengthType"])
+            value = self._decode_field(reader, field["name"], field["type"], field["lengthType"])
+            decoded[field["name"]] = value 
         return decoded
 
     def _lengthTypeCheck(self, lengthType):
