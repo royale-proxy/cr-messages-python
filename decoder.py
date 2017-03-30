@@ -8,14 +8,14 @@ from coc.hexdump import hexdump
 
 
 class CoCMessageDecoder:
-    lengthTypes = ['BYTE', 'INT']
+    lengthTypes = ['BYTE', 'INT', 'RRSINT32']
     _bitfield = None
 
     def __init__(self, definitions=None):
         if not definitions:
             self._definitions = CoCMessageDefinitions.read()
         self._definitions = definitions
-    
+
     def decodeFile(self, filepath):
         messageid = None
         length = None
@@ -29,7 +29,7 @@ class CoCMessageDecoder:
         if messageid and length and payload:
             return self.decode(messageid, version, payload)
         return None
-    
+
     def decode(self, messageid, unknown, payload):
         if messageid in self._definitions:
             reader = CoCMessageReader(messageid, unknown, payload)
@@ -42,7 +42,7 @@ class CoCMessageDecoder:
                 decoded = {
                     "name": self._definitions[messageid]["name"]
                 }
-            
+
             unused = reader.read()
             if unused:
                 self.dump(decoded)
@@ -57,21 +57,21 @@ class CoCMessageDecoder:
         for index, field in enumerate(fields):
             if "name" not in field:
                 field["name"] = "unknown_{}".format(str(index).zfill(math.floor(math.log10(len(fields)))))
-            
+
             # default in lengthType to 4 byte int. Used to count the number of members in an array
             if "lengthType" not in field:
                 field["lengthType"] = "INT"
-                
+
             self._lengthTypeCheck(field["lengthType"])
-            
+
             value = self._decode_field(reader, field["name"], field["type"], field["lengthType"])
-            decoded[field["name"]] = value 
+            decoded[field["name"]] = value
         return decoded
 
     def _lengthTypeCheck(self, lengthType):
         if lengthType not in self.lengthTypes:
             raise ValueError("lengthType {} not supported".format(lengthType))
-        
+
     def _decode_field(self, reader, name, type, lengthType):
         if not len(reader.peek(1)):
             raise IndexError("Read buffer out of data.")
@@ -91,7 +91,7 @@ class CoCMessageDecoder:
         elif self._bitfield:
             reader.read(1)
             self._bitfield = None
-            
+
         found = type.find("[")
         if found >= 0:
             count = type[found + 1:-1]
@@ -111,6 +111,8 @@ class CoCMessageDecoder:
             return bool(reader.read_int(1))
         elif type == "BYTE":
             return reader.read_byte()
+        elif type == "SCID":
+            return reader.read_scid()
         elif type == "SHORT":
             return reader.read_short()
         elif type == "INT":
@@ -156,7 +158,7 @@ class CoCMessageDecoder:
     def dump(self, decoded, hide_unknown=False):
         if "name" not in decoded:
             decoded["name"] = "unknownName"
-            
+
         if "fields" in decoded:
             print("{}: {}".format(decoded["name"], json.dumps(self.stringify(decoded["fields"], hide_unknown), indent=2)))
         else:
