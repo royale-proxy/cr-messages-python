@@ -41,7 +41,7 @@ class CoCMessageReader(BufferedReader):
         hi = self.read_byte()
         lo = 0
         if(hi):
-            lo = self.read(byte)
+            lo = self.read_rrsint32()
         return hi * 10000000 + lo
 
     def read_short(self, length=2):
