@@ -38,11 +38,16 @@ class CoCMessageReader(BufferedReader):
         return int.from_bytes(self.read(1), byteorder="big")
 
     def read_scid(self):
-        hi = self.read_byte()
+        hi = self.read_rrsint32()
         lo = 0
         if(hi):
             lo = self.read_rrsint32()
         return hi * 10000000 + lo
+
+    def read_rrslong(self):
+        hi = self.read_rrsint32().to_bytes(4, byteorder="big")
+        lo = self.read_rrsint32().to_bytes(4, byteorder="big")
+        return int.from_bytes(hi + lo, byteorder="big")
 
     def read_short(self, length=2):
         return int.from_bytes(self.read(length), byteorder="big")

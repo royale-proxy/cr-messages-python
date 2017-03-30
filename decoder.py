@@ -123,6 +123,8 @@ class CoCMessageDecoder:
             return reader.read_sint32()
         elif type == "RRSINT32":
             return reader.read_rrsint32()
+        elif type == "RRSLONG":
+            return reader.read_rrslong()
         elif type == "LONG":
             return reader.read_long()
         elif type == "STRING":
