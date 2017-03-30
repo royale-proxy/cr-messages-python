@@ -42,7 +42,7 @@ class CoCMessageReader(BufferedReader):
         lo = 0
         if(hi):
             lo = self.read_rrsint32()
-        return hi * 10000000 + lo
+        return hi * 1000000 + lo
 
     def read_rrslong(self):
         hi = self.read_rrsint32().to_bytes(4, byteorder="big")
