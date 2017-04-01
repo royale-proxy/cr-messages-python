@@ -102,7 +102,7 @@ class CoCMessageDecoder:
                 elif lengthType == "INT":
                     count = reader.read_int(4)
                 else:
-                    count = reader.read_int()
+                    count = reader.read_rrsint32()
             decoded = []
             for i in range(int(count)):
                 decoded.append(self._decode_field(reader, "{}[{}]".format(name, i), type, lengthType))
